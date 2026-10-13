@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>المنصة التعليمية للدفعة</title>
+  <title>منصة المحاضرات والملخصات</title>
   <style>
     :root {
       --bg: #051610;
@@ -15,12 +15,32 @@
       --accent: #10b981;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 30px 16px; line-height: 1.6; }
-    header { text-align: center; max-width: 800px; margin: 0 auto 30px; }
+    body { background-color: var(--bg); color: var(--text); padding: 30px 16px; min-height: 100vh; }
+    header { text-align: center; max-width: 800px; margin: 0 auto 25px; }
     h1 { color: var(--title); margin-bottom: 8px; font-size: 2rem; }
     p { color: var(--text-muted); }
+
+    .admin-bar {
+      max-width: 800px;
+      margin: 0 auto 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .btn {
+      background: #134e38;
+      color: #fff;
+      border: 1px solid var(--title);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+    .btn:hover { background: var(--accent); }
+
     .container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-    
+
     details {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -28,47 +48,90 @@
       overflow: hidden;
     }
     summary {
-      padding: 18px 24px;
+      padding: 16px 20px;
       cursor: pointer;
       font-weight: 700;
       font-size: 1.15rem;
-      color: var(--title);
       user-select: none;
-      list-style: none;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
     summary::-webkit-details-marker { display: none; }
-    summary::after {
-      content: "▼";
-      font-size: 0.8rem;
-      transition: transform 0.2s;
-    }
+    summary::after { content: "▼"; font-size: 0.8rem; }
     details[open] summary::after { transform: rotate(180deg); }
-    
+
     .lectures-list {
-      padding: 10px 24px 20px;
+      padding: 10px 20px 20px;
       border-top: 1px solid var(--card-border);
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
-    .lecture-link {
-      display: block;
+    .lecture-btn {
+      width: 100%;
+      text-align: right;
       padding: 12px 16px;
       background: #061c15;
       border: 1px solid var(--card-border);
       border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: 0.2s;
+    }
+    .lecture-btn:hover { border-color: var(--accent); background: #0c3326; }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+    }
+    .modal-content {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 550px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .modal-content input, .modal-content select, .modal-content textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--card-border);
+      background: #061c15;
       color: var(--text);
-      text-decoration: none;
-      transition: 0.2s ease;
+      font-family: inherit;
     }
-    .lecture-link:hover {
-      border-color: var(--accent);
-      background: #0c3326;
-      color: #fff;
+    .modal-content textarea { resize: vertical; min-height: 140px; direction: ltr; font-family: monospace; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+
+    .viewer {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 2000;
+      flex-direction: column;
     }
+    .viewer-header {
+      background: #09241b;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .viewer iframe { width: 100%; height: 100%; border: none; }
   </style>
 </head>
 <body>
@@ -78,26 +141,193 @@
     <p>اختر المادة ثم اضغط على المحاضرة لعرض الملخص</p>
   </header>
 
-  <main class="container">
+  <div class="admin-bar">
+    <button class="btn" onclick="openModal('folderModal')">+ إضافة مادة (Folder)</button>
+    <button class="btn" onclick="openModal('fileModal')">+ إضافة محاضرة (File)</button>
+  </div>
 
-    <!-- مادة التشريح -->
-    <details open>
-      <summary>تشريح (Anatomy)</summary>
-      <div class="lectures-list">
-        <a class="lecture-link" href="Anatomy/Anatomy Lec.1.html">المحاضرة 1: تشريح وتطور الجهاز العصبي</a>
-        <!-- يمكنك تكرار السطر وإضافة باقي المحاضرات -->
-      </div>
-    </details>
-
-    <!-- مادة أخرى -->
-    <details>
-      <summary>وظائف الأعضاء (Physiology)</summary>
-      <div class="lectures-list">
-        <a class="lecture-link" href="Physiology/Physio Lec.1.html">المحاضرة 1: المقدمة</a>
-      </div>
-    </details>
-
+  <main class="container" id="foldersContainer">
+    <p style="text-align: center; color: var(--text-muted);">جاري تحميل المحتوى...</p>
   </main>
 
+  <!-- نافذة إضافة مادة -->
+  <div class="modal" id="folderModal">
+    <div class="modal-content">
+      <h3 style="color: var(--title);">إضافة مادة جديدة (Folder)</h3>
+      <input type="text" id="folderName" placeholder="اسم المادة (مثال: Anatomy)">
+      <label>لون العنوان:</label>
+      <input type="color" id="folderColor" value="#4ade80">
+      <div class="modal-actions">
+        <button class="btn" id="saveFolderBtn" onclick="addFolder()">حفظ ونشر</button>
+        <button class="btn" onclick="closeModal('folderModal')">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة إضافة محاضرة -->
+  <div class="modal" id="fileModal">
+    <div class="modal-content">
+      <h3 style="color: var(--title);">إضافة محاضرة جديدة (File)</h3>
+      <select id="targetFolder"></select>
+      <input type="text" id="fileName" placeholder="اسم المحاضرة (مثال: تشريح وتطور الجهاز العصبي)">
+      <label>لون العنوان:</label>
+      <input type="color" id="fileColor" value="#d1fae5">
+      <textarea id="fileHtml" placeholder="الصق كود HTML الخاص بالمحاضرة هنا..."></textarea>
+      <div class="modal-actions">
+        <button class="btn" id="saveFileBtn" onclick="addLecture()">حفظ ونشر</button>
+        <button class="btn" onclick="closeModal('fileModal')">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- شاشة عرض المحاضرة -->
+  <div class="viewer" id="viewer">
+    <div class="viewer-header">
+      <span id="viewerTitle" style="color: var(--title); font-weight: bold;"></span>
+      <button class="btn" onclick="closeViewer()">✕ إغلاق الملخص</button>
+    </div>
+    <iframe id="lectureFrame"></iframe>
+  </div>
+
+  <!-- مكتبات Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBi6Hxt-dQ8sojGhzkr8hY77-fYgdDpHk2Y",
+      authDomain: "continue-8bd70.firebaseapp.com",
+      projectId: "continue-8bd70",
+      storageBucket: "continue-8bd70.firebasestorage.app",
+      messagingSenderId: "69931115016",
+      appId: "1:69931115016:web:9c4536036a7cf9b3a227bd",
+      measurementId: "G-QEENFBLYSY"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let folders = [];
+    let lectures = [];
+
+    onSnapshot(collection(db, "folders"), (snapshot) => {
+      folders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      render();
+    });
+
+    onSnapshot(collection(db, "lectures"), (snapshot) => {
+      lectures = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      render();
+    });
+
+    function render() {
+      const container = document.getElementById('foldersContainer');
+      const select = document.getElementById('targetFolder');
+      container.innerHTML = '';
+      select.innerHTML = '';
+
+      if (folders.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">لا توجد مواد بعد. اضغط على "+ إضافة مادة" للبدء.</p>';
+        return;
+      }
+
+      folders.forEach(folder => {
+        const opt = document.createElement('option');
+        opt.value = folder.id;
+        opt.textContent = folder.name;
+        select.appendChild(opt);
+
+        const details = document.createElement('details');
+        details.open = true;
+
+        const summary = document.createElement('summary');
+        summary.textContent = folder.name;
+        summary.style.color = folder.color || 'var(--title)';
+
+        const list = document.createElement('div');
+        list.className = 'lectures-list';
+
+        const folderLecs = lectures.filter(l => l.folderId === folder.id);
+
+        if (folderLecs.length === 0) {
+          list.innerHTML = '<span style="color: #6ee7b7; font-size: 0.9rem;">لا توجد محاضرات في هذه المادة بعد.</span>';
+        } else {
+          folderLecs.forEach(lec => {
+            const btn = document.createElement('button');
+            btn.className = 'lecture-btn';
+            btn.textContent = lec.title;
+            btn.style.color = lec.color || 'var(--text)';
+            btn.onclick = () => window.openLecture(lec.title, lec.content);
+            list.appendChild(btn);
+          });
+        }
+
+        details.appendChild(summary);
+        details.appendChild(list);
+        container.appendChild(details);
+      });
+    }
+
+    window.addFolder = async function() {
+      const name = document.getElementById('folderName').value.trim();
+      const color = document.getElementById('folderColor').value;
+      if (!name) return alert('يرجى إدخال اسم المادة');
+
+      const btn = document.getElementById('saveFolderBtn');
+      btn.textContent = 'جاري الحفظ...';
+      btn.disabled = true;
+
+      try {
+        await addDoc(collection(db, "folders"), { name, color, createdAt: Date.now() });
+        document.getElementById('folderName').value = '';
+        window.closeModal('folderModal');
+      } catch (err) {
+        alert('خطأ أثناء الحفظ: ' + err.message);
+      } finally {
+        btn.textContent = 'حفظ ونشر';
+        btn.disabled = false;
+      }
+    };
+
+    window.addLecture = async function() {
+      const folderId = document.getElementById('targetFolder').value;
+      const title = document.getElementById('fileName').value.trim();
+      const color = document.getElementById('fileColor').value;
+      const content = document.getElementById('fileHtml').value;
+
+      if (!folderId) return alert('يرجى إنشاء مادة أولاً');
+      if (!title || !content) return alert('يرجى كتابة اسم المحاضرة ولصق الكود');
+
+      const btn = document.getElementById('saveFileBtn');
+      btn.textContent = 'جاري الحفظ...';
+      btn.disabled = true;
+
+      try {
+        await addDoc(collection(db, "lectures"), { folderId, title, color, content, createdAt: Date.now() });
+        document.getElementById('fileName').value = '';
+        document.getElementById('fileHtml').value = '';
+        window.closeModal('fileModal');
+      } catch (err) {
+        alert('خطأ أثناء الحفظ: ' + err.message);
+      } finally {
+        btn.textContent = 'حفظ ونشر';
+        btn.disabled = false;
+      }
+    };
+
+    window.openLecture = function(title, content) {
+      document.getElementById('viewerTitle').textContent = title;
+      document.getElementById('lectureFrame').srcdoc = content;
+      document.getElementById('viewer').style.display = 'flex';
+    };
+
+    window.closeViewer = function() {
+      document.getElementById('viewer').style.display = 'none';
+      document.getElementById('lectureFrame').srcdoc = '';
+    };
+
+    window.openModal = function(id) { document.getElementById(id).style.display = 'flex'; };
+    window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
+  </script>
 </body>
 </html>
