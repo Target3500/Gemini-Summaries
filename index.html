@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المنصة التعليمية للدفعة</title>
+  <style>
+    :root {
+      --bg: #051610;
+      --card-bg: #09241b;
+      --card-border: #134e38;
+      --title: #4ade80;
+      --text: #d1fae5;
+      --text-muted: #86efac;
+      --accent: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 30px 16px; line-height: 1.6; }
+    header { text-align: center; max-width: 800px; margin: 0 auto 30px; }
+    h1 { color: var(--title); margin-bottom: 8px; font-size: 2rem; }
+    p { color: var(--text-muted); }
+    .container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    
+    details {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    summary {
+      padding: 18px 24px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--title);
+      user-select: none;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after {
+      content: "▼";
+      font-size: 0.8rem;
+      transition: transform 0.2s;
+    }
+    details[open] summary::after { transform: rotate(180deg); }
+    
+    .lectures-list {
+      padding: 10px 24px 20px;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .lecture-link {
+      display: block;
+      padding: 12px 16px;
+      background: #061c15;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--text);
+      text-decoration: none;
+      transition: 0.2s ease;
+    }
+    .lecture-link:hover {
+      border-color: var(--accent);
+      background: #0c3326;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>منصة المحاضرات والملخصات</h1>
+    <p>اختر المادة ثم اضغط على المحاضرة لعرض الملخص</p>
+  </header>
+
+  <main class="container">
+
+    <!-- مادة التشريح -->
+    <details open>
+      <summary>تشريح (Anatomy)</summary>
+      <div class="lectures-list">
+        <a class="lecture-link" href="Anatomy/Anatomy Lec.1.html">المحاضرة 1: تشريح وتطور الجهاز العصبي</a>
+        <!-- يمكنك تكرار السطر وإضافة باقي المحاضرات -->
+      </div>
+    </details>
+
+    <!-- مادة أخرى -->
+    <details>
+      <summary>وظائف الأعضاء (Physiology)</summary>
+      <div class="lectures-list">
+        <a class="lecture-link" href="Physiology/Physio Lec.1.html">المحاضرة 1: المقدمة</a>
+      </div>
+    </details>
+
+  </main>
+
+</body>
+</html>
