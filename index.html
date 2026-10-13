@@ -13,31 +13,38 @@
       --text: #d1fae5;
       --text-muted: #86efac;
       --accent: #10b981;
+      --danger: #ef4444;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 30px 16px; min-height: 100vh; }
+    body { background-color: var(--bg); color: var(--text); padding: 30px 16px 80px; min-height: 100vh; }
     header { text-align: center; max-width: 800px; margin: 0 auto 25px; }
     h1 { color: var(--title); margin-bottom: 8px; font-size: 2rem; }
     p { color: var(--text-muted); }
 
+    /* شريط المشرف - مخفي افتراضياً */
     .admin-bar {
       max-width: 800px;
       margin: 0 auto 20px;
-      display: flex;
+      display: none;
       gap: 10px;
       justify-content: center;
+      flex-wrap: wrap;
     }
     .btn {
       background: #134e38;
       color: #fff;
       border: 1px solid var(--title);
-      padding: 8px 16px;
+      padding: 7px 14px;
       border-radius: 8px;
       cursor: pointer;
       font-weight: bold;
       transition: 0.2s;
+      font-size: 0.9rem;
     }
     .btn:hover { background: var(--accent); }
+    .btn-icon { padding: 4px 8px; font-size: 0.8rem; background: #061c15; border-color: var(--card-border); }
+    .btn-danger { border-color: var(--danger); color: var(--danger); }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
 
     .container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
 
@@ -48,7 +55,7 @@
       overflow: hidden;
     }
     summary {
-      padding: 16px 20px;
+      padding: 14px 18px;
       cursor: pointer;
       font-weight: 700;
       font-size: 1.15rem;
@@ -58,29 +65,45 @@
       align-items: center;
     }
     summary::-webkit-details-marker { display: none; }
-    summary::after { content: "▼"; font-size: 0.8rem; }
-    details[open] summary::after { transform: rotate(180deg); }
+    .folder-header-left { display: flex; align-items: center; gap: 8px; }
+    .folder-controls { display: none; gap: 4px; }
 
     .lectures-list {
-      padding: 10px 20px 20px;
+      padding: 10px 18px 18px;
       border-top: 1px solid var(--card-border);
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
-    .lecture-btn {
-      width: 100%;
-      text-align: right;
-      padding: 12px 16px;
+    .lecture-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       background: #061c15;
       border: 1px solid var(--card-border);
       border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
+      padding: 4px 8px;
       transition: 0.2s;
     }
-    .lecture-btn:hover { border-color: var(--accent); background: #0c3326; }
+    .lecture-item:hover { border-color: var(--accent); }
+    .lecture-btn {
+      flex: 1;
+      text-align: right;
+      padding: 8px;
+      background: transparent;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .item-controls { display: none; gap: 4px; }
 
+    /* إظهار أدوات التعديل في وضع الأدمن */
+    body.is-admin .admin-bar { display: flex; }
+    body.is-admin .folder-controls { display: flex; }
+    body.is-admin .item-controls { display: flex; }
+
+    /* النوافذ */
     .modal {
       display: none;
       position: fixed;
@@ -115,6 +138,7 @@
     .modal-content textarea { resize: vertical; min-height: 140px; direction: ltr; font-family: monospace; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
 
+    /* عارض المحاضرة */
     .viewer {
       display: none;
       position: fixed;
@@ -132,6 +156,21 @@
       border-bottom: 1px solid var(--card-border);
     }
     .viewer iframe { width: 100%; height: 100%; border: none; }
+
+    /* زر الأدمن السري */
+    .admin-toggle {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.3);
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+    .admin-toggle:hover { color: #fff; border-color: #fff; }
   </style>
 </head>
 <body>
@@ -142,39 +181,42 @@
   </header>
 
   <div class="admin-bar">
-    <button class="btn" onclick="openModal('folderModal')">+ إضافة مادة (Folder)</button>
-    <button class="btn" onclick="openModal('fileModal')">+ إضافة محاضرة (File)</button>
+    <button class="btn" onclick="openCreateFolder()">+ إضافة مادة (Folder)</button>
+    <button class="btn" onclick="openCreateLecture()">+ إضافة محاضرة (File)</button>
+    <button class="btn btn-danger" onclick="toggleAdmin(false)">قفل وضع الإدارة</button>
   </div>
 
   <main class="container" id="foldersContainer">
     <p style="text-align: center; color: var(--text-muted);">جاري تحميل المحتوى...</p>
   </main>
 
-  <!-- نافذة إضافة مادة -->
+  <!-- نافذة إضافة / تعديل مادة -->
   <div class="modal" id="folderModal">
     <div class="modal-content">
-      <h3 style="color: var(--title);">إضافة مادة جديدة (Folder)</h3>
-      <input type="text" id="folderName" placeholder="اسم المادة (مثال: Anatomy)">
+      <h3 id="folderModalTitle" style="color: var(--title);">بيانات المادة</h3>
+      <input type="hidden" id="editFolderId">
+      <input type="text" id="folderName" placeholder="اسم المادة">
       <label>لون العنوان:</label>
       <input type="color" id="folderColor" value="#4ade80">
       <div class="modal-actions">
-        <button class="btn" id="saveFolderBtn" onclick="addFolder()">حفظ ونشر</button>
+        <button class="btn" id="saveFolderBtn" onclick="saveFolder()">حفظ</button>
         <button class="btn" onclick="closeModal('folderModal')">إلغاء</button>
       </div>
     </div>
   </div>
 
-  <!-- نافذة إضافة محاضرة -->
+  <!-- نافذة إضافة / تعديل محاضرة -->
   <div class="modal" id="fileModal">
     <div class="modal-content">
-      <h3 style="color: var(--title);">إضافة محاضرة جديدة (File)</h3>
+      <h3 id="fileModalTitle" style="color: var(--title);">بيانات المحاضرة</h3>
+      <input type="hidden" id="editLectureId">
       <select id="targetFolder"></select>
-      <input type="text" id="fileName" placeholder="اسم المحاضرة (مثال: تشريح وتطور الجهاز العصبي)">
-      <label>لون العنوان:</label>
+      <input type="text" id="fileName" placeholder="اسم المحاضرة">
+      <label>لون النص:</label>
       <input type="color" id="fileColor" value="#d1fae5">
       <textarea id="fileHtml" placeholder="الصق كود HTML الخاص بالمحاضرة هنا..."></textarea>
       <div class="modal-actions">
-        <button class="btn" id="saveFileBtn" onclick="addLecture()">حفظ ونشر</button>
+        <button class="btn" id="saveFileBtn" onclick="saveLecture()">حفظ</button>
         <button class="btn" onclick="closeModal('fileModal')">إلغاء</button>
       </div>
     </div>
@@ -189,10 +231,12 @@
     <iframe id="lectureFrame"></iframe>
   </div>
 
+  <button class="admin-toggle" onclick="promptAdmin()" title="تسجيل الدخول للمشرف">🔒 دخول المشرف</button>
+
   <!-- مكتبات Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBi6Hxt-dQ8sojGhzkr8hY77-fYgdDpHk2Y",
@@ -207,16 +251,48 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const ADMIN_PASS = "K6f06001"; // يمكنك تغيير كلمة المرور هنا
+
     let folders = [];
     let lectures = [];
 
+    // التحقق من حالة الأدمن المحفوظة
+    if (sessionStorage.getItem('isAdmin') === 'true') {
+      document.body.classList.add('is-admin');
+    }
+
+    window.promptAdmin = function() {
+      if (document.body.classList.contains('is-admin')) {
+        alert('أنت في وضع الإدارة بالفعل.');
+        return;
+      }
+      const pass = prompt('أدخل كلمة مرور المشرف:');
+      if (pass === ADMIN_PASS) {
+        window.toggleAdmin(true);
+      } else if (pass !== null) {
+        alert('كلمة المرور غير صحيحة.');
+      }
+    };
+
+    window.toggleAdmin = function(status) {
+      if (status) {
+        document.body.classList.add('is-admin');
+        sessionStorage.setItem('isAdmin', 'true');
+      } else {
+        document.body.classList.remove('is-admin');
+        sessionStorage.removeItem('isAdmin');
+      }
+    };
+
     onSnapshot(collection(db, "folders"), (snapshot) => {
-      folders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      folders = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      folders.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       render();
     });
 
     onSnapshot(collection(db, "lectures"), (snapshot) => {
-      lectures = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      lectures = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      lectures.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       render();
     });
 
@@ -227,11 +303,11 @@
       select.innerHTML = '';
 
       if (folders.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">لا توجد مواد بعد. اضغط على "+ إضافة مادة" للبدء.</p>';
+        container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">لا توجد مواد بعد.</p>';
         return;
       }
 
-      folders.forEach(folder => {
+      folders.forEach((folder, fIdx) => {
         const opt = document.createElement('option');
         opt.value = folder.id;
         opt.textContent = folder.name;
@@ -241,8 +317,26 @@
         details.open = true;
 
         const summary = document.createElement('summary');
-        summary.textContent = folder.name;
-        summary.style.color = folder.color || 'var(--title)';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = folder.name;
+        nameSpan.style.color = folder.color || 'var(--title)';
+
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'folder-header-left';
+
+        const fControls = document.createElement('div');
+        fControls.className = 'folder-controls';
+        fControls.innerHTML = `
+          <button class="btn btn-icon" onclick="event.stopPropagation(); moveFolder(${fIdx}, -1)" title="رفع للأعلى">▲</button>
+          <button class="btn btn-icon" onclick="event.stopPropagation(); moveFolder(${fIdx}, 1)" title="إنزال للأسفل">▼</button>
+          <button class="btn btn-icon" onclick="event.stopPropagation(); editFolder('${folder.id}')" title="تعديل">✏️</button>
+          <button class="btn btn-icon btn-danger" onclick="event.stopPropagation(); deleteFolder('${folder.id}')" title="حذف">🗑️</button>
+        `;
+
+        leftDiv.appendChild(fControls);
+        summary.appendChild(nameSpan);
+        summary.appendChild(leftDiv);
 
         const list = document.createElement('div');
         list.className = 'lectures-list';
@@ -252,13 +346,28 @@
         if (folderLecs.length === 0) {
           list.innerHTML = '<span style="color: #6ee7b7; font-size: 0.9rem;">لا توجد محاضرات في هذه المادة بعد.</span>';
         } else {
-          folderLecs.forEach(lec => {
+          folderLecs.forEach((lec, lIdx) => {
+            const item = document.createElement('div');
+            item.className = 'lecture-item';
+
             const btn = document.createElement('button');
             btn.className = 'lecture-btn';
             btn.textContent = lec.title;
             btn.style.color = lec.color || 'var(--text)';
             btn.onclick = () => window.openLecture(lec.title, lec.content);
-            list.appendChild(btn);
+
+            const iControls = document.createElement('div');
+            iControls.className = 'item-controls';
+            iControls.innerHTML = `
+              <button class="btn btn-icon" onclick="moveLecture('${folder.id}', ${lIdx}, -1)" title="رفع للأعلى">▲</button>
+              <button class="btn btn-icon" onclick="moveLecture('${folder.id}', ${lIdx}, 1)" title="إنزال للأسفل">▼</button>
+              <button class="btn btn-icon" onclick="editLecture('${lec.id}')" title="تعديل">✏️</button>
+              <button class="btn btn-icon btn-danger" onclick="deleteLecture('${lec.id}')" title="حذف">🗑️</button>
+            `;
+
+            item.appendChild(btn);
+            item.appendChild(iControls);
+            list.appendChild(item);
           });
         }
 
@@ -268,51 +377,134 @@
       });
     }
 
-    window.addFolder = async function() {
+    // إدارة المجلدات (Folders)
+    window.openCreateFolder = function() {
+      document.getElementById('editFolderId').value = '';
+      document.getElementById('folderName').value = '';
+      document.getElementById('folderColor').value = '#4ade80';
+      document.getElementById('folderModalTitle').textContent = 'إضافة مادة جديدة';
+      window.openModal('folderModal');
+    };
+
+    window.editFolder = function(id) {
+      const f = folders.find(x => x.id === id);
+      if (!f) return;
+      document.getElementById('editFolderId').value = f.id;
+      document.getElementById('folderName').value = f.name;
+      document.getElementById('folderColor').value = f.color || '#4ade80';
+      document.getElementById('folderModalTitle').textContent = 'تعديل بيانات المادة';
+      window.openModal('folderModal');
+    };
+
+    window.saveFolder = async function() {
+      const id = document.getElementById('editFolderId').value;
       const name = document.getElementById('folderName').value.trim();
       const color = document.getElementById('folderColor').value;
       if (!name) return alert('يرجى إدخال اسم المادة');
 
       const btn = document.getElementById('saveFolderBtn');
-      btn.textContent = 'جاري الحفظ...';
       btn.disabled = true;
 
       try {
-        await addDoc(collection(db, "folders"), { name, color, createdAt: Date.now() });
-        document.getElementById('folderName').value = '';
+        if (id) {
+          await updateDoc(doc(db, "folders", id), { name, color });
+        } else {
+          await addDoc(collection(db, "folders"), { name, color, order: folders.length, createdAt: Date.now() });
+        }
         window.closeModal('folderModal');
       } catch (err) {
-        alert('خطأ أثناء الحفظ: ' + err.message);
+        alert('حدث خطأ: ' + err.message);
       } finally {
-        btn.textContent = 'حفظ ونشر';
         btn.disabled = false;
       }
     };
 
-    window.addLecture = async function() {
+    window.deleteFolder = async function(id) {
+      if (!confirm('هل تريد بالتأكيد حذف هذه المادة؟ (لن تُحذف محاضراتها تلقائياً)')) return;
+      await deleteDoc(doc(db, "folders", id));
+    };
+
+    window.moveFolder = async function(index, direction) {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= folders.length) return;
+      const current = folders[index];
+      const target = folders[targetIndex];
+
+      const currentOrder = current.order ?? index;
+      const targetOrder = target.order ?? targetIndex;
+
+      await updateDoc(doc(db, "folders", current.id), { order: targetOrder });
+      await updateDoc(doc(db, "folders", target.id), { order: currentOrder });
+    };
+
+    // إدارة المحاضرات (Lectures)
+    window.openCreateLecture = function() {
+      document.getElementById('editLectureId').value = '';
+      document.getElementById('fileName').value = '';
+      document.getElementById('fileColor').value = '#d1fae5';
+      document.getElementById('fileHtml').value = '';
+      document.getElementById('fileModalTitle').textContent = 'إضافة محاضرة جديدة';
+      window.openModal('fileModal');
+    };
+
+    window.editLecture = function(id) {
+      const l = lectures.find(x => x.id === id);
+      if (!l) return;
+      document.getElementById('editLectureId').value = l.id;
+      document.getElementById('targetFolder').value = l.folderId;
+      document.getElementById('fileName').value = l.title;
+      document.getElementById('fileColor').value = l.color || '#d1fae5';
+      document.getElementById('fileHtml').value = l.content || '';
+      document.getElementById('fileModalTitle').textContent = 'تعديل بيانات المحاضرة';
+      window.openModal('fileModal');
+    };
+
+    window.saveLecture = async function() {
+      const id = document.getElementById('editLectureId').value;
       const folderId = document.getElementById('targetFolder').value;
       const title = document.getElementById('fileName').value.trim();
       const color = document.getElementById('fileColor').value;
       const content = document.getElementById('fileHtml').value;
 
       if (!folderId) return alert('يرجى إنشاء مادة أولاً');
-      if (!title || !content) return alert('يرجى كتابة اسم المحاضرة ولصق الكود');
+      if (!title || !content) return alert('يرجى كتابة اسم المحاضرة وكود الـ HTML');
 
       const btn = document.getElementById('saveFileBtn');
-      btn.textContent = 'جاري الحفظ...';
       btn.disabled = true;
 
       try {
-        await addDoc(collection(db, "lectures"), { folderId, title, color, content, createdAt: Date.now() });
-        document.getElementById('fileName').value = '';
-        document.getElementById('fileHtml').value = '';
+        if (id) {
+          await updateDoc(doc(db, "lectures", id), { folderId, title, color, content });
+        } else {
+          const folderLecs = lectures.filter(l => l.folderId === folderId);
+          await addDoc(collection(db, "lectures"), { folderId, title, color, content, order: folderLecs.length, createdAt: Date.now() });
+        }
         window.closeModal('fileModal');
       } catch (err) {
-        alert('خطأ أثناء الحفظ: ' + err.message);
+        alert('حدث خطأ: ' + err.message);
       } finally {
-        btn.textContent = 'حفظ ونشر';
         btn.disabled = false;
       }
+    };
+
+    window.deleteLecture = async function(id) {
+      if (!confirm('هل تريد بالتأكيد حذف هذه المحاضرة؟')) return;
+      await deleteDoc(doc(db, "lectures", id));
+    };
+
+    window.moveLecture = async function(folderId, index, direction) {
+      const folderLecs = lectures.filter(l => l.folderId === folderId);
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= folderLecs.length) return;
+
+      const current = folderLecs[index];
+      const target = folderLecs[targetIndex];
+
+      const currentOrder = current.order ?? index;
+      const targetOrder = target.order ?? targetIndex;
+
+      await updateDoc(doc(db, "lectures", current.id), { order: targetOrder });
+      await updateDoc(doc(db, "lectures", target.id), { order: currentOrder });
     };
 
     window.openLecture = function(title, content) {
