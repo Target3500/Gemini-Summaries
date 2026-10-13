@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>منصة المحاضرات والملخصات</title>
+  <title>منصة Submucosa</title>
   <style>
     :root {
       --bg: #051610;
@@ -21,7 +21,6 @@
     h1 { color: var(--title); margin-bottom: 8px; font-size: 2rem; }
     p { color: var(--text-muted); }
 
-    /* شريط المشرف - مخفي افتراضياً */
     .admin-bar {
       max-width: 800px;
       margin: 0 auto 20px;
@@ -98,12 +97,10 @@
     }
     .item-controls { display: none; gap: 4px; }
 
-    /* إظهار أدوات التعديل في وضع الأدمن */
     body.is-admin .admin-bar { display: flex; }
     body.is-admin .folder-controls { display: flex; }
     body.is-admin .item-controls { display: flex; }
 
-    /* النوافذ */
     .modal {
       display: none;
       position: fixed;
@@ -138,7 +135,6 @@
     .modal-content textarea { resize: vertical; min-height: 140px; direction: ltr; font-family: monospace; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
 
-    /* عارض المحاضرة */
     .viewer {
       display: none;
       position: fixed;
@@ -157,7 +153,6 @@
     }
     .viewer iframe { width: 100%; height: 100%; border: none; }
 
-    /* زر الأدمن السري */
     .admin-toggle {
       position: fixed;
       bottom: 12px;
@@ -176,8 +171,11 @@
 <body>
 
   <header>
-    <h1>منصة المحاضرات والملخصات</h1>
+    <h1>منصة Submucosa</h1>
     <p>اختر المادة ثم اضغط على المحاضرة لعرض الملخص</p>
+    <p style="font-size: 0.88rem; color: #4ade80; margin-top: 8px; direction: ltr;">
+      🛠️ Developer: <strong>Ayman Yousry</strong>
+    </p>
   </header>
 
   <div class="admin-bar">
@@ -190,7 +188,6 @@
     <p style="text-align: center; color: var(--text-muted);">جاري تحميل المحتوى...</p>
   </main>
 
-  <!-- نافذة إضافة / تعديل مادة -->
   <div class="modal" id="folderModal">
     <div class="modal-content">
       <h3 id="folderModalTitle" style="color: var(--title);">بيانات المادة</h3>
@@ -205,7 +202,6 @@
     </div>
   </div>
 
-  <!-- نافذة إضافة / تعديل محاضرة -->
   <div class="modal" id="fileModal">
     <div class="modal-content">
       <h3 id="fileModalTitle" style="color: var(--title);">بيانات المحاضرة</h3>
@@ -222,7 +218,6 @@
     </div>
   </div>
 
-  <!-- شاشة عرض المحاضرة -->
   <div class="viewer" id="viewer">
     <div class="viewer-header">
       <span id="viewerTitle" style="color: var(--title); font-weight: bold;"></span>
@@ -233,7 +228,6 @@
 
   <button class="admin-toggle" onclick="promptAdmin()" title="تسجيل الدخول للمشرف">🔒 دخول المشرف</button>
 
-  <!-- مكتبات Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
     import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
@@ -251,12 +245,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const ADMIN_PASS = "K6f06001"; // يمكنك تغيير كلمة المرور هنا
+    const ADMIN_PASS = "1234";
 
     let folders = [];
     let lectures = [];
 
-    // التحقق من حالة الأدمن المحفوظة
     if (sessionStorage.getItem('isAdmin') === 'true') {
       document.body.classList.add('is-admin');
     }
@@ -377,7 +370,6 @@
       });
     }
 
-    // إدارة المجلدات (Folders)
     window.openCreateFolder = function() {
       document.getElementById('editFolderId').value = '';
       document.getElementById('folderName').value = '';
@@ -437,7 +429,6 @@
       await updateDoc(doc(db, "folders", target.id), { order: currentOrder });
     };
 
-    // إدارة المحاضرات (Lectures)
     window.openCreateLecture = function() {
       document.getElementById('editLectureId').value = '';
       document.getElementById('fileName').value = '';
