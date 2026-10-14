@@ -21,6 +21,7 @@
     h1 { color: var(--title); margin-bottom: 8px; font-size: 2rem; }
     p { color: var(--text-muted); }
 
+    /* شريط المشرف وأزرار التحكم - مخفية تماماً حتى وضع التوكن */
     .admin-bar {
       max-width: 800px;
       margin: 0 auto 20px;
@@ -29,6 +30,14 @@
       justify-content: center;
       flex-wrap: wrap;
     }
+    .folder-controls { display: none; gap: 4px; }
+    .item-controls { display: none; gap: 4px; }
+
+    /* إظهار كل الأزرار فقط في حال وجود كلاس is-admin */
+    body.is-admin .admin-bar { display: flex; }
+    body.is-admin .folder-controls { display: flex; }
+    body.is-admin .item-controls { display: flex; }
+
     .btn {
       background: #134e38;
       color: #fff;
@@ -64,8 +73,10 @@
       align-items: center;
     }
     summary::-webkit-details-marker { display: none; }
+    summary::after { content: "▼"; font-size: 0.8rem; transition: transform 0.2s; }
+    details[open] summary::after { transform: rotate(180deg); }
+
     .folder-header-left { display: flex; align-items: center; gap: 8px; }
-    .folder-controls { display: none; gap: 4px; }
 
     .lectures-list {
       padding: 10px 18px 18px;
@@ -95,12 +106,8 @@
       cursor: pointer;
       font-size: 1rem;
     }
-    .item-controls { display: none; gap: 4px; }
 
-    body.is-admin .admin-bar { display: flex; }
-    body.is-admin .folder-controls { display: flex; }
-    body.is-admin .item-controls { display: flex; }
-
+    /* النوافذ */
     .modal {
       display: none;
       position: fixed;
@@ -134,6 +141,7 @@
     }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
 
+    /* عارض المحاضرة */
     .viewer {
       display: none;
       position: fixed;
@@ -177,6 +185,7 @@
     </p>
   </header>
 
+  <!-- شريط المشرف -->
   <div class="admin-bar">
     <button class="btn" onclick="openCreateFolder()">+ إضافة مادة (Folder)</button>
     <button class="btn" onclick="openCreateLecture()">+ إضافة محاضرة (File)</button>
@@ -187,7 +196,7 @@
     <p style="text-align: center; color: var(--text-muted);">جاري تحميل المحتوى...</p>
   </main>
 
-  <!-- نافذة إضافة / تعديل مادة -->
+  <!-- نافذة مادة -->
   <div class="modal" id="folderModal">
     <div class="modal-content">
       <h3 id="folderModalTitle" style="color: var(--title);">بيانات المادة</h3>
@@ -202,7 +211,7 @@
     </div>
   </div>
 
-  <!-- نافذة إضافة / تعديل محاضرة -->
+  <!-- نافذة محاضرة -->
   <div class="modal" id="fileModal">
     <div class="modal-content">
       <h3 id="fileModalTitle" style="color: var(--title);">بيانات المحاضرة</h3>
@@ -227,6 +236,7 @@
     <iframe id="lectureFrame"></iframe>
   </div>
 
+  <!-- زر مخفي شكلياً في الزاوية للمشرف -->
   <button class="admin-toggle" onclick="promptAdmin()" title="تسجيل الدخول للمشرف">🔒 دخول المشرف</button>
 
   <script>
@@ -236,6 +246,7 @@
 
     let data = [];
 
+    // فحص هل التوكن موجود مسبقاً
     if (localStorage.getItem('gh_token')) {
       document.body.classList.add('is-admin');
     }
@@ -246,11 +257,11 @@
         return;
       }
       const token = prompt('أدخل GitHub Personal Access Token الخاص بك:');
-      if (token) {
+      if (token && token.trim() !== '') {
         localStorage.setItem('gh_token', token.trim());
         document.body.classList.add('is-admin');
         render();
-        alert('تم تفعيل وضع الإدارة.');
+        alert('تم تفعيل وضع المشرف بنجاح! ظهرت أدوات التعديل والإضافة.');
       }
     }
 
@@ -258,6 +269,7 @@
       localStorage.removeItem('gh_token');
       document.body.classList.remove('is-admin');
       render();
+      alert('تم قفل وضع الإدارة وإخفاء الأزرار.');
     }
 
     function loadData() {
@@ -301,6 +313,7 @@
         const leftDiv = document.createElement('div');
         leftDiv.className = 'folder-header-left';
 
+        // عناصر التحكم للمادة (مخفية إلا مع التوكن)
         const fControls = document.createElement('div');
         fControls.className = 'folder-controls';
         fControls.innerHTML = `
@@ -329,6 +342,7 @@
             btn.textContent = lec.title;
             btn.onclick = () => openLecture(lec.title, lec.path);
 
+            // عناصر التحكم للمحاضرة (مخفية إلا مع التوكن)
             const iControls = document.createElement('div');
             iControls.className = 'item-controls';
             iControls.innerHTML = `
@@ -352,7 +366,7 @@
 
     async function syncToGitHub() {
       const token = localStorage.getItem('gh_token');
-      if (!token) return alert('غير مصرح لك، سجل الدخول أولاً');
+      if (!token) return alert('غير مصرح لك، سجل الدخول أولاً بالتوكن');
 
       try {
         const getRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
@@ -370,13 +384,13 @@
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            message: "Update lectures via UI",
+            message: "Update data via Admin UI",
             content: contentBase64,
             sha: sha
           })
         });
 
-        if (!putRes.ok) throw new Error('فشل الحفظ في GitHub، تأكد من صلاحيات الرمز.');
+        if (!putRes.ok) throw new Error('فشل الحفظ في GitHub، تأكد من صحة التوكن.');
 
         render();
       } catch (err) {
@@ -465,7 +479,6 @@
       if (!title || !path) return alert('يرجى ملء الاسم ومسار الملف');
 
       if (fIdx !== '' && lIdx !== '') {
-        // إذا تغيرت المادة ننقلها إليها
         if (fIdx !== targetFIdx) {
           data[fIdx].lectures.splice(lIdx, 1);
           data[targetFIdx].lectures.push({ title, path });
