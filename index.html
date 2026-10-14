@@ -21,7 +21,6 @@
     h1 { color: var(--title); margin-bottom: 8px; font-size: 2rem; }
     p { color: var(--text-muted); }
 
-    /* شريط أزرار الإضافة للمشرف فقط */
     .admin-bar {
       max-width: 800px;
       margin: 0 auto 20px;
@@ -42,6 +41,7 @@
       font-size: 0.9rem;
     }
     .btn:hover { background: var(--accent); }
+    .btn-icon { padding: 4px 8px; font-size: 0.8rem; background: #061c15; border-color: var(--card-border); }
     .btn-danger { border-color: var(--danger); color: var(--danger); }
     .btn-danger:hover { background: var(--danger); color: #fff; }
 
@@ -64,8 +64,8 @@
       align-items: center;
     }
     summary::-webkit-details-marker { display: none; }
-    summary::after { content: "▼"; font-size: 0.8rem; transition: transform 0.2s; }
-    details[open] summary::after { transform: rotate(180deg); }
+    .folder-header-left { display: flex; align-items: center; gap: 8px; }
+    .folder-controls { display: none; gap: 4px; }
 
     .lectures-list {
       padding: 10px 18px 18px;
@@ -74,21 +74,33 @@
       flex-direction: column;
       gap: 10px;
     }
-    .lecture-btn {
-      width: 100%;
-      text-align: right;
-      padding: 10px 14px;
+    .lecture-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       background: #061c15;
       border: 1px solid var(--card-border);
       border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      color: var(--text);
+      padding: 4px 8px;
       transition: 0.2s;
     }
-    .lecture-btn:hover { border-color: var(--accent); background: #0c3326; color: #fff; }
+    .lecture-item:hover { border-color: var(--accent); }
+    .lecture-btn {
+      flex: 1;
+      text-align: right;
+      padding: 8px;
+      background: transparent;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .item-controls { display: none; gap: 4px; }
 
-    /* النوافذ */
+    body.is-admin .admin-bar { display: flex; }
+    body.is-admin .folder-controls { display: flex; }
+    body.is-admin .item-controls { display: flex; }
+
     .modal {
       display: none;
       position: fixed;
@@ -122,7 +134,6 @@
     }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
 
-    /* عارض المحاضرة */
     .viewer {
       display: none;
       position: fixed;
@@ -154,8 +165,6 @@
       font-size: 0.75rem;
     }
     .admin-toggle:hover { color: #fff; border-color: #fff; }
-
-    body.is-admin .admin-bar { display: flex; }
   </style>
 </head>
 <body>
@@ -169,8 +178,8 @@
   </header>
 
   <div class="admin-bar">
-    <button class="btn" onclick="openModal('folderModal')">+ إضافة مادة (Folder)</button>
-    <button class="btn" onclick="openModal('lectureModal')">+ إضافة محاضرة (File)</button>
+    <button class="btn" onclick="openCreateFolder()">+ إضافة مادة (Folder)</button>
+    <button class="btn" onclick="openCreateLecture()">+ إضافة محاضرة (File)</button>
     <button class="btn btn-danger" onclick="logoutAdmin()">قفل وضع الإدارة</button>
   </div>
 
@@ -178,30 +187,33 @@
     <p style="text-align: center; color: var(--text-muted);">جاري تحميل المحتوى...</p>
   </main>
 
-  <!-- نافذة إضافة مادة -->
+  <!-- نافذة إضافة / تعديل مادة -->
   <div class="modal" id="folderModal">
     <div class="modal-content">
-      <h3 style="color: var(--title);">إضافة مادة جديدة</h3>
-      <input type="text" id="folderName" placeholder="اسم المادة (مثال: باثولوجي)">
+      <h3 id="folderModalTitle" style="color: var(--title);">بيانات المادة</h3>
+      <input type="hidden" id="editFolderIdx">
+      <input type="text" id="folderName" placeholder="اسم المادة (مثال: تشريح)">
       <label>لون العنوان:</label>
       <input type="color" id="folderColor" value="#4ade80">
       <div class="modal-actions">
-        <button class="btn" id="saveFolderBtn" onclick="addFolder()">حفظ ونشر</button>
+        <button class="btn" id="saveFolderBtn" onclick="saveFolder()">حفظ ونشر</button>
         <button class="btn" onclick="closeModal('folderModal')">إلغاء</button>
       </div>
     </div>
   </div>
 
-  <!-- نافذة إضافة محاضرة -->
-  <div class="modal" id="lectureModal">
+  <!-- نافذة إضافة / تعديل محاضرة -->
+  <div class="modal" id="fileModal">
     <div class="modal-content">
-      <h3 style="color: var(--title);">إضافة محاضرة جديدة</h3>
+      <h3 id="fileModalTitle" style="color: var(--title);">بيانات المحاضرة</h3>
+      <input type="hidden" id="editLecFolderIdx">
+      <input type="hidden" id="editLecIdx">
       <select id="targetFolder"></select>
-      <input type="text" id="lectureTitle" placeholder="اسم المحاضرة (مثال: Lec.2)">
-      <input type="text" id="lecturePath" placeholder="مسار الملف في GitHub (مثال: Anatomy/Lec2.html)">
+      <input type="text" id="fileName" placeholder="اسم المحاضرة">
+      <input type="text" id="filePath" placeholder="مسار الملف في GitHub (مثال: Anatomy/Lec1.html)">
       <div class="modal-actions">
-        <button class="btn" id="saveLectureBtn" onclick="addLecture()">حفظ ونشر</button>
-        <button class="btn" onclick="closeModal('lectureModal')">إلغاء</button>
+        <button class="btn" id="saveFileBtn" onclick="saveLecture()">حفظ ونشر</button>
+        <button class="btn" onclick="closeModal('fileModal')">إلغاء</button>
       </div>
     </div>
   </div>
@@ -215,7 +227,7 @@
     <iframe id="lectureFrame"></iframe>
   </div>
 
-  <button class="admin-toggle" onclick="promptAdmin()">🔒 دخول المشرف</button>
+  <button class="admin-toggle" onclick="promptAdmin()" title="تسجيل الدخول للمشرف">🔒 دخول المشرف</button>
 
   <script>
     const REPO_OWNER = "Target3500";
@@ -223,7 +235,6 @@
     const FILE_PATH = "data.json";
 
     let data = [];
-    let fileSha = "";
 
     if (localStorage.getItem('gh_token')) {
       document.body.classList.add('is-admin');
@@ -238,13 +249,15 @@
       if (token) {
         localStorage.setItem('gh_token', token.trim());
         document.body.classList.add('is-admin');
-        alert('تم الدخول بنجاح! ظهرت لك الآن أزرار الإضافة.');
+        render();
+        alert('تم تفعيل وضع الإدارة.');
       }
     }
 
     function logoutAdmin() {
       localStorage.removeItem('gh_token');
       document.body.classList.remove('is-admin');
+      render();
     }
 
     function loadData() {
@@ -255,7 +268,7 @@
           render();
         })
         .catch(err => {
-          document.getElementById('foldersContainer').innerHTML = '<p style="text-align: center; color: var(--danger);">تعذر تحميل data.json</p>';
+          document.getElementById('foldersContainer').innerHTML = '<p style="text-align: center; color: var(--danger);">تعذر تحميل data.json، تأكد من وجوده في المستودع.</p>';
         });
     }
 
@@ -265,31 +278,69 @@
       container.innerHTML = '';
       select.innerHTML = '';
 
-      data.forEach((item, index) => {
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">لا توجد مواد بعد.</p>';
+        return;
+      }
+
+      data.forEach((folder, fIdx) => {
         const opt = document.createElement('option');
-        opt.value = index;
-        opt.textContent = item.folder;
+        opt.value = fIdx;
+        opt.textContent = folder.folder;
         select.appendChild(opt);
 
         const details = document.createElement('details');
         details.open = true;
 
         const summary = document.createElement('summary');
-        summary.textContent = item.folder;
-        summary.style.color = item.color || 'var(--title)';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = folder.folder;
+        nameSpan.style.color = folder.color || 'var(--title)';
+
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'folder-header-left';
+
+        const fControls = document.createElement('div');
+        fControls.className = 'folder-controls';
+        fControls.innerHTML = `
+          <button class="btn btn-icon" onclick="event.stopPropagation(); moveFolder(${fIdx}, -1)" title="رفع للأعلى">▲</button>
+          <button class="btn btn-icon" onclick="event.stopPropagation(); moveFolder(${fIdx}, 1)" title="إنزال للأسفل">▼</button>
+          <button class="btn btn-icon" onclick="event.stopPropagation(); editFolder(${fIdx})" title="تعديل">✏️</button>
+          <button class="btn btn-icon btn-danger" onclick="event.stopPropagation(); deleteFolder(${fIdx})" title="حذف">🗑️</button>
+        `;
+
+        leftDiv.appendChild(fControls);
+        summary.appendChild(nameSpan);
+        summary.appendChild(leftDiv);
 
         const list = document.createElement('div');
         list.className = 'lectures-list';
 
-        if (!item.lectures || item.lectures.length === 0) {
-          list.innerHTML = '<span style="color: #6ee7b7; font-size: 0.9rem;">لا توجد محاضرات مضافة.</span>';
+        if (!folder.lectures || folder.lectures.length === 0) {
+          list.innerHTML = '<span style="color: #6ee7b7; font-size: 0.9rem;">لا توجد محاضرات في هذه المادة بعد.</span>';
         } else {
-          item.lectures.forEach(lec => {
+          folder.lectures.forEach((lec, lIdx) => {
+            const item = document.createElement('div');
+            item.className = 'lecture-item';
+
             const btn = document.createElement('button');
             btn.className = 'lecture-btn';
             btn.textContent = lec.title;
             btn.onclick = () => openLecture(lec.title, lec.path);
-            list.appendChild(btn);
+
+            const iControls = document.createElement('div');
+            iControls.className = 'item-controls';
+            iControls.innerHTML = `
+              <button class="btn btn-icon" onclick="moveLecture(${fIdx}, ${lIdx}, -1)" title="رفع للأعلى">▲</button>
+              <button class="btn btn-icon" onclick="moveLecture(${fIdx}, ${lIdx}, 1)" title="إنزال للأسفل">▼</button>
+              <button class="btn btn-icon" onclick="editLecture(${fIdx}, ${lIdx})" title="تعديل">✏️</button>
+              <button class="btn btn-icon btn-danger" onclick="deleteLecture(${fIdx}, ${lIdx})" title="حذف">🗑️</button>
+            `;
+
+            item.appendChild(btn);
+            item.appendChild(iControls);
+            list.appendChild(item);
           });
         }
 
@@ -299,13 +350,9 @@
       });
     }
 
-    async function syncToGitHub(updatedData, btnId) {
+    async function syncToGitHub() {
       const token = localStorage.getItem('gh_token');
       if (!token) return alert('غير مصرح لك، سجل الدخول أولاً');
-
-      const btn = document.getElementById(btnId);
-      btn.disabled = true;
-      btn.textContent = 'جاري التحديث في GitHub...';
 
       try {
         const getRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
@@ -314,7 +361,7 @@
         const fileInfo = await getRes.json();
         const sha = fileInfo.sha;
 
-        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(updatedData, null, 2))));
+        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
 
         const putRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
           method: 'PUT',
@@ -323,41 +370,130 @@
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            message: "Update lectures via Platform UI",
+            message: "Update lectures via UI",
             content: contentBase64,
             sha: sha
           })
         });
 
-        if (!putRes.ok) throw new Error('فشل التحديث، تأكد من صحة الرمز.');
+        if (!putRes.ok) throw new Error('فشل الحفظ في GitHub، تأكد من صلاحيات الرمز.');
 
-        alert('تم الحفظ بنجاح! سيتم تحديث الصفحة.');
-        location.reload();
+        render();
       } catch (err) {
         alert('حدث خطأ: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'حفظ ونشر';
       }
     }
 
-    function addFolder() {
-      const name = document.getElementById('folderName').value.trim();
-      const color = document.getElementById('folderColor').value;
-      if (!name) return alert('اكتب اسم المادة');
-
-      data.push({ folder: name, color: color, lectures: [] });
-      syncToGitHub(data, 'saveFolderBtn');
+    // إدارة المواد
+    function openCreateFolder() {
+      document.getElementById('editFolderIdx').value = '';
+      document.getElementById('folderName').value = '';
+      document.getElementById('folderColor').value = '#4ade80';
+      document.getElementById('folderModalTitle').textContent = 'إضافة مادة جديدة';
+      openModal('folderModal');
     }
 
-    function addLecture() {
-      const folderIdx = document.getElementById('targetFolder').value;
-      const title = document.getElementById('lectureTitle').value.trim();
-      const path = document.getElementById('lecturePath').value.trim();
-      if (!title || !path) return alert('أدخل اسم المحاضرة ومسار الملف');
+    function editFolder(idx) {
+      const f = data[idx];
+      document.getElementById('editFolderIdx').value = idx;
+      document.getElementById('folderName').value = f.folder;
+      document.getElementById('folderColor').value = f.color || '#4ade80';
+      document.getElementById('folderModalTitle').textContent = 'تعديل بيانات المادة';
+      openModal('folderModal');
+    }
 
-      data[folderIdx].lectures.push({ title, path });
-      syncToGitHub(data, 'saveLectureBtn');
+    async function saveFolder() {
+      const idx = document.getElementById('editFolderIdx').value;
+      const name = document.getElementById('folderName').value.trim();
+      const color = document.getElementById('folderColor').value;
+      if (!name) return alert('يرجى كتابة اسم المادة');
+
+      if (idx !== '') {
+        data[idx].folder = name;
+        data[idx].color = color;
+      } else {
+        data.push({ folder: name, color: color, lectures: [] });
+      }
+
+      closeModal('folderModal');
+      await syncToGitHub();
+    }
+
+    async function deleteFolder(idx) {
+      if (!confirm('هل تريد بالتأكيد حذف هذه المادة وجميع محاضراتها؟')) return;
+      data.splice(idx, 1);
+      await syncToGitHub();
+    }
+
+    async function moveFolder(idx, direction) {
+      const target = idx + direction;
+      if (target < 0 || target >= data.length) return;
+      const temp = data[idx];
+      data[idx] = data[target];
+      data[target] = temp;
+      await syncToGitHub();
+    }
+
+    // إدارة المحاضرات
+    function openCreateLecture() {
+      document.getElementById('editLecFolderIdx').value = '';
+      document.getElementById('editLecIdx').value = '';
+      document.getElementById('fileName').value = '';
+      document.getElementById('filePath').value = '';
+      document.getElementById('fileModalTitle').textContent = 'إضافة محاضرة جديدة';
+      openModal('fileModal');
+    }
+
+    function editLecture(fIdx, lIdx) {
+      const lec = data[fIdx].lectures[lIdx];
+      document.getElementById('editLecFolderIdx').value = fIdx;
+      document.getElementById('editLecIdx').value = lIdx;
+      document.getElementById('targetFolder').value = fIdx;
+      document.getElementById('fileName').value = lec.title;
+      document.getElementById('filePath').value = lec.path;
+      document.getElementById('fileModalTitle').textContent = 'تعديل بيانات المحاضرة';
+      openModal('fileModal');
+    }
+
+    async function saveLecture() {
+      const fIdx = document.getElementById('editLecFolderIdx').value;
+      const lIdx = document.getElementById('editLecIdx').value;
+      const targetFIdx = document.getElementById('targetFolder').value;
+      const title = document.getElementById('fileName').value.trim();
+      const path = document.getElementById('filePath').value.trim();
+
+      if (!title || !path) return alert('يرجى ملء الاسم ومسار الملف');
+
+      if (fIdx !== '' && lIdx !== '') {
+        // إذا تغيرت المادة ننقلها إليها
+        if (fIdx !== targetFIdx) {
+          data[fIdx].lectures.splice(lIdx, 1);
+          data[targetFIdx].lectures.push({ title, path });
+        } else {
+          data[fIdx].lectures[lIdx] = { title, path };
+        }
+      } else {
+        data[targetFIdx].lectures.push({ title, path });
+      }
+
+      closeModal('fileModal');
+      await syncToGitHub();
+    }
+
+    async function deleteLecture(fIdx, lIdx) {
+      if (!confirm('هل تريد حذف هذه المحاضرة؟')) return;
+      data[fIdx].lectures.splice(lIdx, 1);
+      await syncToGitHub();
+    }
+
+    async function moveLecture(fIdx, lIdx, direction) {
+      const target = lIdx + direction;
+      const lecs = data[fIdx].lectures;
+      if (target < 0 || target >= lecs.length) return;
+      const temp = lecs[lIdx];
+      lecs[lIdx] = lecs[target];
+      lecs[target] = temp;
+      await syncToGitHub();
     }
 
     function openLecture(title, path) {
