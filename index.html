@@ -230,7 +230,17 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+    import { 
+      initializeFirestore, 
+      persistentLocalCache, 
+      persistentMultipleTabManager,
+      collection, 
+      addDoc, 
+      updateDoc, 
+      deleteDoc, 
+      doc, 
+      onSnapshot 
+    } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBi6Hxt-dQ8sojGhzkr8hY77-fYgdDpHk2Y",
@@ -243,12 +253,17 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    
+    // تفعيل التخزين المؤقت المحلي لسرعة التحميل وتفادي الاختفاء
+    const db = initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
 
     const ADMIN_PASS = "K6f06001";
 
     let folders = [];
     let lectures = [];
+    let foldersLoaded = false;
 
     if (sessionStorage.getItem('isAdmin') === 'true') {
       document.body.classList.add('is-admin');
@@ -280,13 +295,14 @@
     onSnapshot(collection(db, "folders"), (snapshot) => {
       folders = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       folders.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      foldersLoaded = true;
       render();
     });
 
     onSnapshot(collection(db, "lectures"), (snapshot) => {
       lectures = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       lectures.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-      render();
+      if (foldersLoaded) render();
     });
 
     function render() {
