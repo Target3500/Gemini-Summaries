@@ -1,15 +1,5 @@
 [
   {
-    "folder": "تشريح (Anatomy)",
-    "color": "#4ade80",
-    "lectures": [
-      {
-        "title": "المحاضرة 1: تشريح وتطور الجهاز العصبي",
-        "path": "Anatomy/Anatomy Lec.1.html"
-      }
-    ]
-  },
-  {
     "folder": "وظائف أعضاء (Physiology)",
     "color": "#60a5fa",
     "lectures": [
