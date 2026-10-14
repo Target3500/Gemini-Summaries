@@ -2,11 +2,6 @@
   {
     "folder": "وظائف أعضاء (Physiology)",
     "color": "#60a5fa",
-    "lectures": [
-      {
-        "title": "Lec.1 CardioVascular System",
-        "path": "Physiology/Physio Lec.1.html"
-      }
-    ]
+    "lectures": []
   }
 ]
